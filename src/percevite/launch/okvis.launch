@@ -1,0 +1,8 @@
+<launch>
+  <node name="okvis_node" pkg="okvis_ros" type="okvis_node" output="screen">
+    <param name="config_filename" value="$(find percevite)/config/okvis/slamdunk.yaml" />
+    <remap from="/camera0" to="/left_grayscale/image" />
+    <remap from="/camera1" to="/right_grayscale/image" />
+    <remap from="/imu" to="/imu" />
+  </node>
+</launch>
