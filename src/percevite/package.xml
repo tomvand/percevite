@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>percevite</name>
+  <version>0.0.1</version>
+  <description>Percevite package</description>
+
+  <maintainer email="tomvand@users.noreply.github.com">Tom van Dijk</maintainer>
+  <author>Tom van Dijk</author>
+  <license>TBD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+ 
+  <depend>okvis_ros</depend>
+  <depend>svo_ros</depend>
+</package>
