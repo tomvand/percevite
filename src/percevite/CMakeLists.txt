@@ -117,6 +117,8 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ext/pprzlink/var/include/
+  ext/udp/
 )
 
 ## Declare a C++ library
@@ -130,7 +132,13 @@ include_directories(
 # add_dependencies(percevite ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(percevite_node src/percevite.cpp)
+file(GLOB UDP_SRC_FILES ext/udp/*.*)
+
+add_executable(percevite_node 
+  src/percevite.cpp
+  ext/pprzlink/var/share/pprzlink/src/pprz_transport.c
+  ${UDP_SRC_FILES}
+)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

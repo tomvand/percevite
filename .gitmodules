@@ -1,0 +1,3 @@
+[submodule "src/ext/pprzlink"]
+	path = src/percevite/ext/pprzlink
+	url = https://github.com/paparazzi/pprzlink.git
