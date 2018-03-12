@@ -2,10 +2,6 @@
 build/
 devel/
 
-.cproject
-.project
-.settings
-
 src/CMakeLists.txt
 src/okvis_ros
 src/rpg_svo_example
