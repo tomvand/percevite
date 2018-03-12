@@ -9,8 +9,8 @@ echo "Source percevite workspace"
 source devel/setup.bash
 
 echo "Set up ROS for multiple computers with Ubuntu connection sharing..."
-export ROS_IP=10.42.0.2
-export ROS_HOSTNAME=slamdunk-001234.local
+export ROS_IP=`hostname -I | sed 's/ //'`
+export ROS_HOSTNAME=`hostname`.local
 echo "ROS settings:"
 export | grep ROS
 
