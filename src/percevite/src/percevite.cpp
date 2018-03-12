@@ -10,6 +10,8 @@
 #include <iostream>
 #include <cmath>
 
+#include "percevite_pprzlink.hpp"
+
 // TODO http://wiki.ros.org/image_transport/Tutorials/SubscribingToImages
 // TODO http://developer.parrot.com/docs/slamdunk/#code
 

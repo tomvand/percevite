@@ -65,8 +65,6 @@ extern void     udp_receive(struct udp_periph *p);
 extern void     udp_put_buffer(struct udp_periph *p, long fd, const uint8_t *data, uint16_t len);
 
 
-#define USE_UDP0 TRUE // should be a define file for the project
-
 #if USE_UDP0
 extern struct udp_periph udp0;
 
