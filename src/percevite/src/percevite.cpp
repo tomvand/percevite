@@ -121,7 +121,8 @@ void imageCallback(
 	//**************************************************************************
 	// For testing: write dummy text to pprzlink
 	//**************************************************************************
-	SlamdunkToPaparazziMsg msg = { "SD img cb" };
+	SlamdunkToPaparazziMsg msg;
+	msg.safe_distance = (uint8_t)dist;
 	pprzlink.write(sizeof(msg), &msg.bytes);
 
 	//**************************************************************************
