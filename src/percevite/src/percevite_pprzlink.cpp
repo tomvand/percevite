@@ -15,7 +15,7 @@ void Pprzlink::write(int length, unsigned char *bytes) {
 }
 
 bool Pprzlink::read(int length, unsigned char *bytes) {
-	bool message_available;
+	bool message_available = false;
 	pprz_check_and_parse(&(udp0.device), &trans, buffer, &message_available);
 	if(message_available) {
 		unsigned char msg_length = buffer[4];

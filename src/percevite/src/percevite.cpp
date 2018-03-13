@@ -11,7 +11,7 @@
 #include <cmath>
 
 #include "percevite_pprzlink.hpp"
-#include "percevite_messages.hpp"
+#include "percevite_messages.h"
 
 // TODO http://wiki.ros.org/image_transport/Tutorials/SubscribingToImages
 // TODO http://developer.parrot.com/docs/slamdunk/#code
@@ -121,14 +121,14 @@ void imageCallback(
 	//**************************************************************************
 	// For testing: write dummy text to pprzlink
 	//**************************************************************************
-	MessageToPaparazzi msg = { "SD img cb" };
-	pprzlink.write(sizeof(msg), msg.bytes);
+	SlamdunkToPaparazziMsg msg = { "SD img cb" };
+	pprzlink.write(sizeof(msg), &msg.bytes);
 
 	//**************************************************************************
 	// For testing: read dummy text from pprzlink
 	//**************************************************************************
-	MessageFromPaparazzi msg2;
-	if(pprzlink.read(sizeof(msg2), msg2.bytes)) {
+	PaparazziToSlamdunkMsg msg2;
+	if(pprzlink.read(sizeof(msg2), &msg2.bytes)) {
 		ROS_INFO("Received message: [%s]\n", msg2.text);
 	}
 

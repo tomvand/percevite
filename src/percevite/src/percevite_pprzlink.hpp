@@ -7,8 +7,6 @@
 #include "pprzlink/messages.h"
 #include "udp.h"
 
-#include "percevite_messages.hpp"
-
 class Pprzlink {
 public:
 	void init(void);
