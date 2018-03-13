@@ -108,6 +108,19 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+##################
+## UDP Settings ##
+##################
+set(UDP_DEFINES
+  DOWNLINK=1
+  AC_ID=50
+  USE_UDP0=TRUE
+  UDP0_HOST=192.168.42.1
+  UDP0_PORT_OUT=4244
+  UDP0_PORT_IN=4245
+  UDP0_BROADCAST=TRUE
+)
+
 ###########
 ## Build ##
 ###########
@@ -136,9 +149,11 @@ file(GLOB UDP_SRC_FILES ext/udp/*.*)
 
 add_executable(percevite_node 
   src/percevite.cpp
+  src/percevite_pprzlink.cpp
   ext/pprzlink/var/share/pprzlink/src/pprz_transport.c
   ${UDP_SRC_FILES}
 )
+target_compile_definitions(percevite_node PRIVATE ${UDP_DEFINES})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

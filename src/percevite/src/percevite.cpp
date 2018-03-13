@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include "percevite_pprzlink.hpp"
+#include "percevite_messages.hpp"
 
 // TODO http://wiki.ros.org/image_transport/Tutorials/SubscribingToImages
 // TODO http://developer.parrot.com/docs/slamdunk/#code
@@ -116,6 +117,21 @@ void imageCallback(
 	if (key == 27 || key == 'q') {
 		ros::shutdown();
 	}
+
+	//**************************************************************************
+	// For testing: write dummy text to pprzlink
+	//**************************************************************************
+	MessageToPaparazzi msg = { "SD img cb" };
+	pprzlink.write(sizeof(msg), msg.bytes);
+
+	//**************************************************************************
+	// For testing: read dummy text from pprzlink
+	//**************************************************************************
+	MessageFromPaparazzi msg2;
+	if(pprzlink.read(sizeof(msg2), msg2.bytes)) {
+		ROS_INFO("Received message: [%s]\n", msg2.text);
+	}
+
 }
 
 } // namespace
@@ -134,6 +150,9 @@ int main(int argc, char **argv) {
 	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(
 			sub_color, sub_depth, 10);
 	sync.registerCallback(boost::bind(&imageCallback, _1, _2));
+
+	// Initialize pprzlink
+	pprzlink.init();
 
 	ros::spin();
 
