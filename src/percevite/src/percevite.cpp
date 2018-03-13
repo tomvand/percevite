@@ -58,7 +58,8 @@ void imageCallback(
 	cv_bridge::CvImageConstPtr cv_depth_ptr = cv_bridge::toCvShare(depth);
 
 	// TODO Find relevant ROI (now takes entire region)
-	cv::Rect roi(0, 0, cv_depth_ptr->image.cols, cv_depth_ptr->image.rows);
+	cv::Rect roi(0, cv_depth_ptr->image.rows / 4,
+			cv_depth_ptr->image.cols, cv_depth_ptr->image.rows / 2);
 	cv::Mat depth_roi;
 	cv_depth_ptr->image(roi).copyTo(depth_roi);
 
@@ -94,17 +95,21 @@ void imageCallback(
 	// ************************************************************************
 	cv::Mat debug;
 	cv_color_ptr->image.copyTo(debug);
-	int ratio = debug.cols / depth_roi.cols;
-	for(int c = 0; c < debug.cols; ++c) {
-		for(int r = 0; r < debug.rows; ++r) {
-			if(!std::isfinite(depth_roi.at<float>(r/ratio, c/ratio))) {
-				cv::Vec3b color = debug.at<cv::Vec3b>(r, c);
-				color.val[0] = 255;
-				debug.at<cv::Vec3b>(r, c) = color;
-			} else if(depth_roi.at<float>(r/ratio, c/ratio) * 10.0 < dist) {
-				cv::Vec3b color = debug.at<cv::Vec3b>(r, c);
+	int ratio = debug.cols / cv_depth_ptr->image.cols;
+	for(int x = 0; x < debug.cols; ++x) {
+		for(int y = 0; y < debug.rows; ++y) {
+			int x_roi = x / ratio;
+			int y_roi = (y - debug.rows / 4) / ratio;
+			bool inside_roi = (x_roi >= 0) && (x_roi < depth_roi.cols) &&
+					(y_roi >= 0) && (y_roi < depth_roi.rows);
+			if(inside_roi && depth_roi.at<float>(y_roi, x_roi) * 10.0 < dist) {
+				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
 				color.val[2] = 255;
-				debug.at<cv::Vec3b>(r, c) = color;
+				debug.at<cv::Vec3b>(y, x) = color;
+			} else if (!inside_roi || !std::isfinite(depth_roi.at<float>(y_roi, x_roi))) {
+				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
+				color.val[0] = 255;
+				debug.at<cv::Vec3b>(y, x) = color;
 			}
 		}
 	}
