@@ -80,7 +80,7 @@ void imageCallback(
 	}
 	ROS_INFO("Valid pixels: %.0f %%",
 			100.0 * valid_pixels / (depth_roi.cols * depth_roi.rows));
-	int percentile = 10;
+	int percentile = 5;
 	int percentile_count = valid_pixels * percentile / 100;
 	int dist;
 	for(dist = 0; percentile_count > 0 && dist < 150; ++dist) {
@@ -128,6 +128,7 @@ void imageCallback(
 	//**************************************************************************
 	SlamdunkToPaparazziMsg msg;
 	msg.safe_distance = (uint8_t)dist;
+	msg.valid_pixels = (uint8_t)(255.0 * valid_pixels / (depth_roi.cols * depth_roi.rows));
 	pprzlink.write(sizeof(msg), &msg.bytes);
 
 	//**************************************************************************

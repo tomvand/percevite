@@ -6,6 +6,7 @@
 union slamdunk_to_paparazzi_msg_t {
 	struct {
 		uint8_t safe_distance; // [dm]
+		uint8_t valid_pixels;  // [fraction 0-255]
 	};
 	unsigned char bytes;
 } __attribute((__packed__));
