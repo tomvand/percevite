@@ -2,6 +2,8 @@
 
 #include <sensor_msgs/Imu.h>
 
+#include <nav_msgs/Odometry.h>
+
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 #include <message_filters/time_synchronizer.h>
@@ -95,6 +97,17 @@ void on_imu(const sensor_msgs::Imu &imu) {
 		// Unsubscribe
 		slamdunk_orientation.sub.shutdown();
 	}
+}
+
+void on_odom(nav_msgs::Odometry odom) {
+	if(!slamdunk_orientation.valid) return;
+	// Transform to drone body frame
+	cv::Mat vel(3, 1, CV_64F);
+	vel.at<double>(0, 0) = odom.twist.twist.linear.x;
+	vel.at<double>(1, 0) = odom.twist.twist.linear.y;
+	vel.at<double>(2, 0) = odom.twist.twist.linear.z;
+	vel = slamdunk_orientation.R_frd_cam * vel;
+	ROS_INFO_STREAM("vel_frd = " << vel);
 }
 
 void on_image(
@@ -195,6 +208,9 @@ int main(int argc, char **argv) {
 
 	// Subscribe to IMU
 	slamdunk_orientation.sub = nh.subscribe("/imu", 100, &on_imu);
+
+	// Subscribe to odom
+	ros::Subscriber odom_sub = nh.subscribe("/odom", 100, &on_odom);
 
 	// Subscribe to two image topics
 	image_transport::ImageTransport it(nh);

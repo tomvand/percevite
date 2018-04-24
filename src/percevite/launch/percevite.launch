@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="openevo" type="openevo_node" name="openevo" respawn="true" clear_params="true" output="screen">
+    <!-- params -->
+  </node>
+  
+  <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen"/>
+</launch>
