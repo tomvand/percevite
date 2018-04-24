@@ -1,5 +1,7 @@
 #include <ros/ros.h>
 
+#include <sensor_msgs/Imu.h>
+
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 #include <message_filters/time_synchronizer.h>
@@ -51,7 +53,51 @@
 
 namespace {
 
-void imageCallback(
+struct slamdunk_orientation_t {
+	ros::Subscriber sub;
+	bool valid;
+	int samples;
+	double x;
+	double y;
+	double z;
+	cv::Mat R_frd_cam; // Rotation from camera coordinates to front-right-down
+	slamdunk_orientation_t(void) :
+		valid(false),
+		samples(0),
+		x(0.0),
+		y(0.0),
+		z(0.0)
+	{}
+} slamdunk_orientation;
+
+void on_imu(const sensor_msgs::Imu &imu) {
+	if(slamdunk_orientation.samples < 100) {
+		// Calibrate rotation
+		slamdunk_orientation.x += imu.linear_acceleration.x / 100.0;
+		slamdunk_orientation.y += imu.linear_acceleration.y / 100.0;
+		slamdunk_orientation.z += imu.linear_acceleration.z / 100.0;
+		++slamdunk_orientation.samples;
+	} else {
+		// Calibration finished
+		ROS_INFO("Cam to body calibration complete");
+		// Calculate R
+		double &x = slamdunk_orientation.x;
+		double &z = slamdunk_orientation.z;
+		double norm = sqrt(x * x + z * z);
+		double R_frd_cam_data[] = {
+				0.0, -x / norm, -z / norm,
+				1.0,  0.0     ,  0.0     ,
+				0.0, -z / norm,  x / norm
+		};
+		slamdunk_orientation.R_frd_cam = cv::Mat(3, 3, CV_64F, R_frd_cam_data).clone();
+		slamdunk_orientation.valid = true;
+		ROS_INFO_STREAM("R_frd_cam = " << slamdunk_orientation.R_frd_cam);
+		// Unsubscribe
+		slamdunk_orientation.sub.shutdown();
+	}
+}
+
+void on_image(
 		const sensor_msgs::ImageConstPtr &color,
 		const sensor_msgs::ImageConstPtr &depth) {
 	cv_bridge::CvImageConstPtr cv_color_ptr = cv_bridge::toCvShare(color, "bgr8");
@@ -147,6 +193,9 @@ int main(int argc, char **argv) {
 	ros::init(argc, argv, "percevite");
 	ros::NodeHandle nh;
 
+	// Subscribe to IMU
+	slamdunk_orientation.sub = nh.subscribe("/imu", 100, &on_imu);
+
 	// Subscribe to two image topics
 	image_transport::ImageTransport it(nh);
 	image_transport::SubscriberFilter sub_depth(it, "/depth_map/image", 3);
@@ -156,7 +205,7 @@ int main(int argc, char **argv) {
 	// Synchronize the two topics
 	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(
 			sub_color, sub_depth, 10);
-	sync.registerCallback(boost::bind(&imageCallback, _1, _2));
+	sync.registerCallback(boost::bind(&on_image, _1, _2));
 
 	// Initialize pprzlink
 	pprzlink.init();
