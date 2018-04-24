@@ -1,3 +1,6 @@
 [submodule "src/ext/pprzlink"]
 	path = src/percevite/ext/pprzlink
 	url = https://github.com/paparazzi/pprzlink.git
+[submodule "src/openevo"]
+	path = src/openevo
+	url = https://github.com/tomvand/openevo-ros.git
