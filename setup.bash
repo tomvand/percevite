@@ -6,7 +6,7 @@ echo "Set time..."
 sudo ntpdate pool.ntp.org
 
 echo "Source percevite workspace"
-source devel/setup.bash
+source /home/slamdunk/tom/percevite_ws/devel/setup.bash
 
 echo "Set up ROS for multiple computers with Ubuntu connection sharing..."
 export ROS_IP=`hostname -I | sed 's/ .*$//'`
@@ -23,7 +23,7 @@ sudo start slamdunk_ros_node
 echo "Waiting for /left_grayscale/camera_info..."
 rostopic echo /left_grayscale/camera_info -n 1
 
-echo "Wait for message from PC..."
-echo "(Use Ctrl+C if no pc connected)"
-rostopic echo /test -n 1
+#echo "Wait for message from PC..."
+#echo "(Use Ctrl+C if no pc connected)"
+#rostopic echo /test -n 1
 echo "Done."

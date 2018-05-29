@@ -107,7 +107,13 @@ void on_odom(nav_msgs::Odometry odom) {
 	vel.at<double>(1, 0) = odom.twist.twist.linear.y;
 	vel.at<double>(2, 0) = odom.twist.twist.linear.z;
 	vel = slamdunk_orientation.R_frd_cam * vel;
-	ROS_INFO_STREAM("vel_frd = " << vel);
+	// Output velocity to pprzlink
+	SlamdunkToPaparazziMsg msg;
+	msg.flags = SD_MSG_FLAG_VELOCITY;
+	msg.vx = static_cast<float>(vel.at<double>(0, 0));
+	msg.vy = static_cast<float>(vel.at<double>(1, 0));
+	msg.vz = static_cast<float>(vel.at<double>(2, 0));
+	pprzlink.write(sizeof(msg), &msg.bytes);
 }
 
 void on_image(
@@ -186,6 +192,7 @@ void on_image(
 	// For testing: write dummy text to pprzlink
 	//**************************************************************************
 	SlamdunkToPaparazziMsg msg;
+	msg.flags = SD_MSG_FLAG_SAFE_DISTANCE;
 	msg.safe_distance = (uint8_t)dist;
 	msg.valid_pixels = (uint8_t)(255.0 * valid_pixels / (depth_roi.cols * depth_roi.rows));
 	pprzlink.write(sizeof(msg), &msg.bytes);
