@@ -155,42 +155,40 @@ void on_image(
 	// NOTE: For histogram, the discrete and limited disparities might be a better choice!
 
 
-	// ************************************************************************
-	// For testing: highlight pixels smaller than dist in color image
-	// ************************************************************************
-	cv::Mat debug;
-	cv_color_ptr->image.copyTo(debug);
-	int ratio = debug.cols / cv_depth_ptr->image.cols;
-	for(int x = 0; x < debug.cols; ++x) {
-		for(int y = 0; y < debug.rows; ++y) {
-			int x_roi = x / ratio;
-			int y_roi = (y - debug.rows / 4) / ratio;
-			bool inside_roi = (x_roi >= 0) && (x_roi < depth_roi.cols) &&
-					(y_roi >= 0) && (y_roi < depth_roi.rows);
-			if(inside_roi && depth_roi.at<float>(y_roi, x_roi) * 10.0 < dist) {
-				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
-				color.val[2] = 255;
-				debug.at<cv::Vec3b>(y, x) = color;
-			} else if (!inside_roi || !std::isfinite(depth_roi.at<float>(y_roi, x_roi))) {
-				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
-				color.val[0] = 255;
-				debug.at<cv::Vec3b>(y, x) = color;
-			}
-		}
-	}
+//	// ************************************************************************
+//	// For testing: highlight pixels smaller than dist in color image
+//	// ************************************************************************
+//	cv::Mat debug;
+//	cv_color_ptr->image.copyTo(debug);
+//	int ratio = debug.cols / cv_depth_ptr->image.cols;
+//	for(int x = 0; x < debug.cols; ++x) {
+//		for(int y = 0; y < debug.rows; ++y) {
+//			int x_roi = x / ratio;
+//			int y_roi = (y - debug.rows / 4) / ratio;
+//			bool inside_roi = (x_roi >= 0) && (x_roi < depth_roi.cols) &&
+//					(y_roi >= 0) && (y_roi < depth_roi.rows);
+//			if(inside_roi && depth_roi.at<float>(y_roi, x_roi) * 10.0 < dist) {
+//				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
+//				color.val[2] = 255;
+//				debug.at<cv::Vec3b>(y, x) = color;
+//			} else if (!inside_roi || !std::isfinite(depth_roi.at<float>(y_roi, x_roi))) {
+//				cv::Vec3b color = debug.at<cv::Vec3b>(y, x);
+//				color.val[0] = 255;
+//				debug.at<cv::Vec3b>(y, x) = color;
+//			}
+//		}
+//	}
+//
+//	// OLD test code
+//	cv::imshow("Depth", depth_roi / 10.0);
+//	cv::imshow("Debug", debug);
+//
+//	char key = cv::waitKey(1);
+//	if (key == 27 || key == 'q') {
+//		ros::shutdown();
+//	}
 
-	// OLD test code
-	cv::imshow("Depth", depth_roi / 10.0);
-	cv::imshow("Debug", debug);
-
-	char key = cv::waitKey(1);
-	if (key == 27 || key == 'q') {
-		ros::shutdown();
-	}
-
-	//**************************************************************************
-	// For testing: write dummy text to pprzlink
-	//**************************************************************************
+	// Send safe distance through pprzlink
 	SlamdunkToPaparazziMsg msg;
 	msg.flags = SD_MSG_FLAG_SAFE_DISTANCE;
 	msg.safe_distance = (uint8_t)dist;
