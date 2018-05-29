@@ -20,8 +20,8 @@ sudo stop roscore
 sudo start roscore
 sudo start slamdunk_ros_node
 
-echo "Waiting for /pose..."
-rostopic echo /pose -n 1
+echo "Waiting for /left_grayscale/camera_info..."
+rostopic echo /left_grayscale/camera_info -n 1
 
 echo "Wait for message from PC..."
 echo "(Use Ctrl+C if no pc connected)"
