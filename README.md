@@ -65,4 +65,4 @@ On the PC, source the `scripts/setup_ros_pc.bash` to set the required ROS enviro
 
 Run at startup
 --------------
-To run the percevite launchfile at startup, copy the `scripts/percevite.conf` file to `/etc/init` on the SLAMDunk.
+To run the percevite launchfile at startup, copy the `scripts/percevite.conf` file to `/etc/init` on the SLAMDunk. Ensure that the paths in the conf file are correct.
