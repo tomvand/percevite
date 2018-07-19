@@ -1,6 +1,16 @@
 <launch>
+  <node pkg="nodelet" type="nodelet" args="standalone image_proc/resize" name="downscale_img">
+    <remap from="image" to="/left_rgb_rect/image_rect_color"/>
+    <remap from="camera_info" to="/left_rgb_rect/camera_info"/>
+    <param name="use_scale" value="true"/>
+    <param name="scale_width" value="0.5"/>
+    <param name="scale_height" value="0.5"/>
+  </node>
+
   <node pkg="openevo" type="openevo_node" name="openevo" respawn="true" clear_params="true" output="screen">
-    <!-- params -->
+    <remap from="image" to="/downscale_img/image"/>
+    <remap from="camera_info" to="/downscale_img/camera_info"/>
+    <remap from="depth_image" to="/depth_map/image"/>
   </node>
   
   <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen"/>
