@@ -86,11 +86,16 @@ void on_imu(const sensor_msgs::Imu &imu) {
 		double &x = slamdunk_orientation.x;
 		double &z = slamdunk_orientation.z;
 		double norm = sqrt(x * x + z * z);
-		double R_frd_cam_data[] = {
-				0.0, -x / norm, -z / norm,
-				1.0,  0.0     ,  0.0     ,
-				0.0, -z / norm,  x / norm
-		};
+//		double R_frd_cam_data[] = {
+//				0.0, -x / norm, -z / norm,
+//				1.0,  0.0     ,  0.0     ,
+//				0.0, -z / norm,  x / norm
+//		};
+    double R_frd_cam_data[] = {
+        0.0, x / norm, z / norm,
+        1.0,  0.0     ,  0.0     ,
+        0.0, z / norm, -x / norm
+    };
 		slamdunk_orientation.R_frd_cam = cv::Mat(3, 3, CV_64F, R_frd_cam_data).clone();
 		slamdunk_orientation.valid = true;
 		ROS_INFO_STREAM("R_frd_cam = " << slamdunk_orientation.R_frd_cam);
