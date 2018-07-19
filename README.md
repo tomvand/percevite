@@ -1,9 +1,15 @@
 Installation
 ============
-SLAMDunk preparation
+Connect SLAMDunk to internet and set clock
+
+On the PC, run the `scripts/share_connection.sh` script to forward internet traffic to the SLAMDunk. Find the hostname of the PC using `hostname`.
+
+Connect to the SLAMDunk through ssh (e.g. `ssh slamdunk@192.168.45.1 -X`). Then run:
 ```
-sudo ntpupdate pool.ntp.org
+sudo route add default gw <PC hostname>.local
+sudo ntpdate pool.ntp.org
 ```
+Replace `<PC hostname>` with the hostname of the PC. Setting the clock is required to prevent certificate errors with git and to prevent clock skew when using make.
 
 Clone git
 ```
@@ -47,14 +53,6 @@ The terminal should display output of the percevite node. Use ctrl+c to quit.
 
 Optional steps
 =============
-
-Internet connection through PC
-------------------------------
-On the PC, run the `scripts/share_connection.sh` script to forward internet traffic to the SLAMDunk.
-
-On the SLAMDunk, run `scripts/share_connection_client.sh` to set a default route through the pc. Replace `Tom-HP16.local` with the hostname of the PC.
-
-
 Networking through Bebop2
 -------------------------
 On the Bebop2, use `dev` to make the firmware writable. Make a backup of `/bin/rndis_host_setup.sh` and replace it with `scripts/rndis_host_setup.sh` from this repo. The modified script sets a static IP for the Bebop2 (`192.168.45.28`) and enables IP forwarding.
