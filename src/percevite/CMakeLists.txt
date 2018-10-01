@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
 )
+find_package( OpenCV REQUIRED )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -169,6 +170,11 @@ add_executable(percevite_node
 )
 target_compile_definitions(percevite_node PRIVATE ${UDP_DEFINES})
 
+# Add debug macro
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+  target_compile_definitions(percevite_node PRIVATE -DDEBUG)
+endif()
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(percevite_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -176,6 +182,7 @@ add_dependencies(percevite_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
 ## Specify libraries to link a library or executable target against
 target_link_libraries(percevite_node
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
 
 #############
