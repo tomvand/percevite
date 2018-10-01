@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(percevite)
 
+option(SITL "SITL configuration" OFF) # Set UDP to localhost, etc
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -111,6 +113,17 @@ catkin_package(
 ##################
 ## UDP Settings ##
 ##################
+if(SITL)
+set(UDP_DEFINES
+  DOWNLINK=1
+  AC_ID=50
+  USE_UDP0=TRUE
+  UDP0_HOST=127.0.0.1
+  UDP0_PORT_OUT=4244
+  UDP0_PORT_IN=4245
+  UDP0_BROADCAST=TRUE
+)
+else(SITL)
 set(UDP_DEFINES
   DOWNLINK=1
   AC_ID=50
@@ -120,6 +133,7 @@ set(UDP_DEFINES
   UDP0_PORT_IN=4245
   UDP0_BROADCAST=TRUE
 )
+endif(SITL)
 
 ###########
 ## Build ##
