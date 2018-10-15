@@ -1,0 +1,39 @@
+<launch>
+  <!-- Stereo cam simulation -->
+  <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo">
+    <remap from="left/image_raw" to="/left_rgb_rect/image_rect_color"/>
+    <remap from="left/camera_info" to="/left_rgb_rect/camera_info"/>
+    <remap from="right/image_raw" to="/right_rgb_rect/image_rect_color"/>
+    <remap from="right/camera_info" to="right_rgb_rect/camera_info"/>
+    <!-- Parameters based on SLAMDunk default /etc/kalamos/stereo.yml -->
+    <param name="correlation_window_size" value="7"/>
+    <param name="disparity_range" value="64"/>
+    <param name="uniqueness_ratio" value="1.30"/>
+    <param name="texture_threshold" value="5.0"/>
+  </node>
+  
+  <node pkg="nodelet" type="nodelet" args="standalone image_proc/resize" name="disp_map">
+    <remap from="image" to="/disparity"/>
+    <remap from="camera_info" to="/left_rgb_rect/camera_info"/>
+    <param name="use_scale" value="true"/>
+    <param name="scale_width" value="0.1666"/>
+    <param name="scale_height" value="0.1666"/>
+  </node>
+  
+  <!-- Percevite -->
+  <node pkg="nodelet" type="nodelet" args="standalone image_proc/resize" name="downscale_img">
+    <remap from="image" to="/left_rgb_rect/image_rect_color"/>
+    <remap from="camera_info" to="/left_rgb_rect/camera_info"/>
+    <param name="use_scale" value="true"/>
+    <param name="scale_width" value="0.5"/>
+    <param name="scale_height" value="0.5"/>
+  </node>
+
+  <node pkg="openevo" type="openevo_node" name="openevo" respawn="true" clear_params="true" output="screen">
+    <remap from="image" to="/downscale_img/image"/>
+    <remap from="camera_info" to="/downscale_img/camera_info"/>
+    <remap from="depth_image" to="/depth_map/image"/>
+  </node>
+  
+  <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen"/>
+</launch>
