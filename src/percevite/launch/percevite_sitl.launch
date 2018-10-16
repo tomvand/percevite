@@ -12,12 +12,13 @@
     <param name="texture_threshold" value="5.0"/>
   </node>
   
-  <node pkg="nodelet" type="nodelet" args="standalone image_proc/resize" name="disp_map">
-    <remap from="image" to="/disparity"/>
-    <remap from="camera_info" to="/left_rgb_rect/camera_info"/>
-    <param name="use_scale" value="true"/>
-    <param name="scale_width" value="0.1666"/>
-    <param name="scale_height" value="0.1666"/>
+  <node pkg="percevite" type="disp2depth" name="disp2depth" output="screen">
+    <remap from="disp_image" to="/disparity"/>
+    <remap from="disp_out" to="/disp_map/image"/>
+    <remap from="depth_out" to="/depth_map/image"/>
+    <param name="f" value="425"/>
+    <param name="B" value="0.20"/>
+    <param name="output_size" value="96"/>
   </node>
   
   <!-- Percevite -->
