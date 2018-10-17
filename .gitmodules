@@ -4,3 +4,6 @@
 [submodule "src/openevo"]
 	path = src/openevo
 	url = https://github.com/tomvand/openevo-ros.git
+[submodule "src/cspace"]
+	path = src/cspace
+	url = https://github.com/tomvand/ros-cspace-avoidance.git

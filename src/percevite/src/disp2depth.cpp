@@ -22,8 +22,8 @@ void disparityImageCallback(const stereo_msgs::DisparityImage& msg) {
 //  cv::waitKey(1);
   cv::Mat invalid_mask(disp < 0.0);
   disp.setTo(std::numeric_limits<float>::quiet_NaN(), invalid_mask);
-  cv::imshow("invalids", invalid_mask);
-  cv::waitKey(1);
+//  cv::imshow("invalids", invalid_mask);
+//  cv::waitKey(1);
 
   // Downscale disparity map
   cv::resize(disp, disp_s, cv::Size(output_size, output_size), 0, 0, cv::INTER_NEAREST);
