@@ -55,6 +55,13 @@
 
 namespace {
 
+template <typename T>
+T bound(const T& val, const T& min, const T& max) {
+  if(val < min) return min;
+  if(val > max) return max;
+  return val;
+}
+
 struct slamdunk_orientation_t {
 	ros::Subscriber sub;
 	bool valid;
@@ -211,6 +218,43 @@ void on_image(
 
 }
 
+void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
+  const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
+  const float F_disp = 425.0; // C-Space z focal length
+  const float B = 0.20; // Baseline
+
+  PaparazziToSlamdunkMsg request;
+  if(pprzlink.read(sizeof(request), &request.bytes)) {
+    ROS_INFO("Received request: tx = %f, ty = %f, tz = %f",
+        request.tx, request.ty, request.tz);
+    cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
+        (float*)(&(cspace_msg->data[0])));
+
+    // TODO Rotate request to camera frame!
+
+    int xq = cspace.cols / 2.0 + request.ty / request.tx * F;
+    int yq = cspace.rows / 2.0 + request.tz / request.tx * F;
+
+    double x, y, z;
+    if(request.tx > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
+      x = F_disp * B / cspace(yq, xq); // TODO Should this test trajectory instead of only end pixel....?
+      if(x > request.tx) x = request.tx; // Do not move past goal
+      y = request.ty / request.tx * x;
+      z = request.tz / request.tx * x;
+    } else {
+      x = 0.0; // Not in view, so can't guarantee safety
+      y = 0.0;
+      z = 0.0;
+    }
+
+    // TODO Rotate back to drone frame
+
+    ROS_INFO("Reply: rx = %f, ry = %f, rz = %f", x, y, z);
+
+    // TODO Send to pprz
+  }
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -223,16 +267,20 @@ int main(int argc, char **argv) {
 	// Subscribe to odom
 	ros::Subscriber odom_sub = nh.subscribe("/odom", 100, &on_odom);
 
-	// Subscribe to two image topics
-	image_transport::ImageTransport it(nh);
-	image_transport::SubscriberFilter sub_depth(it, "/depth_map/image", 3);
-	image_transport::SubscriberFilter sub_color(it,
-			"/left_rgb_rect/image_rect_color", 10);
+//	// Subscribe to two image topics
+//	image_transport::ImageTransport it(nh);
+//	image_transport::SubscriberFilter sub_depth(it, "/depth_map/image", 3);
+//	image_transport::SubscriberFilter sub_color(it,
+//			"/left_rgb_rect/image_rect_color", 10);
+//
+//	// Synchronize the two topics
+//	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(
+//			sub_color, sub_depth, 10);
+//	sync.registerCallback(boost::bind(&on_image, _1, _2));
 
-	// Synchronize the two topics
-	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(
-			sub_color, sub_depth, 10);
-	sync.registerCallback(boost::bind(&on_image, _1, _2));
+	// Subscribe to cspace
+	image_transport::ImageTransport it(nh);
+	image_transport::Subscriber sub = it.subscribe("/cspace_map/image", 1, &on_cspace);
 
 	// Initialize pprzlink
 	pprzlink.init();
