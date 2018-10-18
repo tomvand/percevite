@@ -23,7 +23,9 @@ typedef union slamdunk_to_paparazzi_msg_t SlamdunkToPaparazziMsg;
 
 union paparazzi_to_slamdunk_msg_t {
 	struct {
-		char text[20]; // Dummy payload
+		float tx; // [m] Front-right-down vector towards target waypoint
+		float ty;
+		float tz;
 	};
 	unsigned char bytes;
 } __attribute((__packed__));

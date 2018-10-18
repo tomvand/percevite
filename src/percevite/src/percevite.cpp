@@ -206,7 +206,7 @@ void on_image(
 	//**************************************************************************
 	PaparazziToSlamdunkMsg msg2;
 	if(pprzlink.read(sizeof(msg2), &msg2.bytes)) {
-		ROS_INFO("Received message: [%s]\n", msg2.text);
+		ROS_INFO("Received request: tx = %f, ty = %f, tz = %f", msg2.tx, msg2.ty, msg2.tz);
 	}
 
 }
