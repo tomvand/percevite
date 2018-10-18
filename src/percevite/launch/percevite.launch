@@ -13,5 +13,10 @@
     <remap from="depth_image" to="/depth_map/image"/>
   </node>
   
+  <node pkg="cspace" type="cspace" name="cspace">
+    <remap from="disp_image" to="/disp_map/image"/>
+    <remap from="cspace_image" to="/cspace_map/image"/>
+  </node>
+  
   <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen"/>
 </launch>
