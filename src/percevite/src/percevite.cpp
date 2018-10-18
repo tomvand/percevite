@@ -223,33 +223,47 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
   const float F_disp = 425.0; // C-Space z focal length
   const float B = 0.20; // Baseline
 
-  PaparazziToSlamdunkMsg request;
-  if(pprzlink.read(sizeof(request), &request.bytes)) {
-    ROS_INFO("Received request: tx = %f, ty = %f, tz = %f",
-        request.tx, request.ty, request.tz);
+  PaparazziToSlamdunkMsg request_msg;
+  if(pprzlink.read(sizeof(request_msg), &request_msg.bytes)) {
+    ROS_INFO("Request (FRD): tx = %f, ty = %f, tz = %f",
+        request_msg.tx, request_msg.ty, request_msg.tz);
     cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
         (float*)(&(cspace_msg->data[0])));
 
-    // TODO Rotate request to camera frame!
+    cv::Mat_<double> request_frd(3, 1);
+    request_frd << request_msg.tx, request_msg.ty, request_msg.tz;
+//    ROS_INFO_STREAM("request_frd " << request_frd);
+    cv::Mat_<double> request(slamdunk_orientation.R_frd_cam.t() * request_frd);
+//    ROS_INFO_STREAM("Request (CAM VEC) " << request);
+    double rx = request(0, 0);
+    double ry = request(1, 0);
+    double rz = request(2, 0);
 
-    int xq = cspace.cols / 2.0 + request.ty / request.tx * F;
-    int yq = cspace.rows / 2.0 + request.tz / request.tx * F;
+//    ROS_INFO("Request (CAM): tx = %f, ty = %f, tz = %f", rx, ry, rz);
+
+    int xq = cspace.cols / 2.0 + rx / rz * F;
+    int yq = cspace.rows / 2.0 + ry / rz * F;
 
     double x, y, z;
-    if(request.tx > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
-      x = F_disp * B / cspace(yq, xq); // TODO Should this test trajectory instead of only end pixel....?
-      if(x > request.tx) x = request.tx; // Do not move past goal
-      y = request.ty / request.tx * x;
-      z = request.tz / request.tx * x;
+    if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
+      z = F_disp * B / cspace(yq, xq); // TODO Should this test trajectory instead of only end pixel....?
+      if(z > rz) z = rz; // Do not move past goal
+      x = rx / rz * z;
+      y = ry / rz * z;
     } else {
       x = 0.0; // Not in view, so can't guarantee safety
       y = 0.0;
       z = 0.0;
     }
 
-    // TODO Rotate back to drone frame
+    cv::Mat_<double> reply(3, 1);
+    reply << x, y, z;
+    cv::Mat_<double> reply_frd(slamdunk_orientation.R_frd_cam * reply);
+    rx = reply_frd(0, 0);
+    ry = reply_frd(1, 0);
+    rz = reply_frd(2, 0);
 
-    ROS_INFO("Reply: rx = %f, ry = %f, rz = %f", x, y, z);
+    ROS_INFO("Reply (FRD): rx = %f, ry = %f, rz = %f", rx, ry, rz);
 
     // TODO Send to pprz
   }
