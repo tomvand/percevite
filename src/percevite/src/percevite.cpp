@@ -261,9 +261,12 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double x, y, z;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
       double d = cspace(yq, xq);
+      if(std::isnan(d)) {
+        d = 0; // Assume NaNs appear in sky (far away)
+      }
       if(d < (ndisp - 1)) {
         z = F_disp * B / d;
-      } else { // Inside safety radius or NaN disparity
+      } else { // Inside safety radius
         z = 0.0;
       }
       if(z > rz) z = rz; // Do not move past goal
