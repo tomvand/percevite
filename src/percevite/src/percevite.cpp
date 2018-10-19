@@ -222,6 +222,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
   const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
   const float F_disp = 425.0; // C-Space z focal length
   const float B = 0.20; // Baseline
+  const int ndisp = 64;
 
   PaparazziToSlamdunkMsg request_msg;
   if(pprzlink.read(sizeof(request_msg), &request_msg.bytes)) {
@@ -246,7 +247,12 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
 
     double x, y, z;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
-      z = F_disp * B / cspace(yq, xq); // TODO Should this test trajectory instead of only end pixel....?
+      double d = cspace(yq, xq);
+      if(d < (ndisp - 1)) {
+        z = F_disp * B / d;
+      } else { // Inside safety radius
+        z = 0.0;
+      }
       if(z > rz) z = rz; // Do not move past goal
       x = rx / rz * z;
       y = ry / rz * z;
