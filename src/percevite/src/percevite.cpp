@@ -8,7 +8,7 @@
 #include <image_transport/subscriber_filter.h>
 #include <message_filters/time_synchronizer.h>
 
-#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 #include <iostream>
@@ -54,6 +54,8 @@
 // Maybe: min-box-filter image, send highest-distance bearing to autopilot for alternative course?
 
 namespace {
+
+image_transport::Publisher pub_debug;
 
 template <typename T>
 T bound(const T& val, const T& min, const T& max) {
@@ -218,18 +220,25 @@ void on_image(
 
 }
 
-void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
+void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
+    const sensor_msgs::ImageConstPtr &color_msg) {
   const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
   const float F_disp = 425.0; // C-Space z focal length
   const float B = 0.20; // Baseline
   const int ndisp = 64;
 
+  int debug_xq = 999.0; // TODO clean up
+  int debug_yq = 999.0;
+
+  cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
+      (float*)(&(cspace_msg->data[0])));
+  cv_bridge::CvImageConstPtr cv_color_ptr = cv_bridge::toCvShare(color_msg, "bgr8");
+  cv::Mat color = cv_color_ptr->image;
+
   PaparazziToSlamdunkMsg request_msg;
   if(pprzlink.read(sizeof(request_msg), &request_msg.bytes)) {
     ROS_INFO("Request (FRD): tx = %f, ty = %f, tz = %f",
         request_msg.tx, request_msg.ty, request_msg.tz);
-    cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
-        (float*)(&(cspace_msg->data[0])));
 
     cv::Mat_<double> request_frd(3, 1);
     request_frd << request_msg.tx, request_msg.ty, request_msg.tz;
@@ -244,6 +253,10 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
 
     int xq = cspace.cols / 2.0 + rx / rz * F;
     int yq = cspace.rows / 2.0 + ry / rz * F;
+    if(rz > 0) {
+      debug_xq = xq * F_disp / F;
+      debug_yq = yq * F_disp / F;
+    }
 
     double x, y, z;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
@@ -273,6 +286,35 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
 
     // TODO Send to pprz
   }
+
+  if(pub_debug.getNumSubscribers() > 0) {
+    cv::Mat_<uint8_t> cspace_u8;
+    cv::Mat_<cv::Vec3b> cspace_rgb;
+    cv::Mat debug;
+
+    // Overlay cspace and color images
+    cspace.convertTo(cspace_u8, CV_8U, 255.0 / (double)ndisp);
+    cv::applyColorMap(cspace_u8, cspace_rgb, cv::COLORMAP_JET);
+    cv::Mat nan_mask(cspace != cspace);
+    cspace_rgb.setTo(cv::Vec3b(255, 255, 255), nan_mask);
+    cv::resize(cspace_rgb, cspace_rgb, color.size(), 0, 0, CV_INTER_NN);
+    cv::addWeighted(cspace_rgb, 0.5, color, 0.5, 0, debug);
+
+    // Draw goal marker
+    if(debug_xq != 999.0 || debug_yq != 999.0) {
+      // Color 255 165 0 (RGB)
+      cv::Point_<int> points[] = {
+          cv::Point_<int>(debug_xq - 10.0, debug_yq - 10.0),
+          cv::Point_<int>(debug_xq + 10.0, debug_yq - 10.0),
+          cv::Point_<int>(debug_xq, debug_yq + 10.0)
+      };
+      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 165, 255));
+    }
+
+    sensor_msgs::ImagePtr debug_msg = cv_bridge::CvImage(cspace_msg->header,
+        sensor_msgs::image_encodings::BGR8, debug).toImageMsg();
+    pub_debug.publish(debug_msg);
+  }
 }
 
 } // namespace
@@ -280,6 +322,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg) {
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "percevite");
 	ros::NodeHandle nh;
+	ros::NodeHandle nh_private("~");
 
 	// Subscribe to IMU
 	slamdunk_orientation.sub = nh.subscribe("/imu", 100, &on_imu);
@@ -300,7 +343,15 @@ int main(int argc, char **argv) {
 
 	// Subscribe to cspace
 	image_transport::ImageTransport it(nh);
-	image_transport::Subscriber sub = it.subscribe("/cspace_map/image", 1, &on_cspace);
+	image_transport::SubscriberFilter sf_cspace(it, "/cspace_map/image", 1);
+	image_transport::SubscriberFilter sf_color(it, "/left_rgb_rect/image_rect_color", 1);
+	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image>
+	    sync(sf_cspace, sf_color, 1);
+	sync.registerCallback(on_cspace);
+
+	// Advertise debug image
+	image_transport::ImageTransport it_private(nh_private);
+	pub_debug = it_private.advertise("debug_image", 1);
 
 	// Initialize pprzlink
 	pprzlink.init();
