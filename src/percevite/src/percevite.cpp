@@ -204,11 +204,11 @@ void on_image(
 #endif
 
 	// Send safe distance through pprzlink
-	SlamdunkToPaparazziMsg msg;
-	msg.flags = SD_MSG_FLAG_SAFE_DISTANCE;
-	msg.safe_distance = (uint8_t)dist;
-	msg.valid_pixels = (uint8_t)(255.0 * valid_pixels / (depth_roi.cols * depth_roi.rows));
-	pprzlink.write(sizeof(msg), &msg.bytes);
+//	SlamdunkToPaparazziMsg msg;
+//	msg.flags = SD_MSG_FLAG_SAFE_DISTANCE;
+//	msg.safe_distance = (uint8_t)dist;
+//	msg.valid_pixels = (uint8_t)(255.0 * valid_pixels / (depth_roi.cols * depth_roi.rows));
+//	pprzlink.write(sizeof(msg), &msg.bytes);
 
 	//**************************************************************************
 	// For testing: read dummy text from pprzlink
@@ -263,7 +263,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       double d = cspace(yq, xq);
       if(d < (ndisp - 1)) {
         z = F_disp * B / d;
-      } else { // Inside safety radius
+      } else { // Inside safety radius or NaN disparity
         z = 0.0;
       }
       if(z > rz) z = rz; // Do not move past goal
@@ -283,8 +283,12 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     rz = reply_frd(2, 0);
 
     ROS_INFO("Reply (FRD): rx = %f, ry = %f, rz = %f", rx, ry, rz);
-
-    // TODO Send to pprz
+    SlamdunkToPaparazziMsg msg;
+    msg.flags = SD_MSG_FLAG_VECTOR;
+    msg.gx  =rx;
+    msg.gy = ry;
+    msg.gz = rz;
+    pprzlink.write(sizeof(msg), &msg.bytes);
   }
 
   if(pub_debug.getNumSubscribers() > 0) {

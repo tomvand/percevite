@@ -4,15 +4,16 @@
 #include <stdint.h>
 
 enum slamdunk_flags_t {
-	SD_MSG_FLAG_SAFE_DISTANCE = 0x01,
+	SD_MSG_FLAG_VECTOR        = 0x01,
 	SD_MSG_FLAG_VELOCITY      = 0x02,
 };
 
 union slamdunk_to_paparazzi_msg_t {
 	struct {
 		uint8_t flags;         // Indicate which fields are set in the message
-		uint8_t safe_distance; // [dm]
-		uint8_t valid_pixels;  // [fraction 0-255]
+		float gx;              // [m] Front-right-down vector towards (sub)goal
+		float gy;
+		float gz;
 		float vx;              // [m/s] Front-right-down velocities (in drone frame)
 		float vy;
 		float vz;
