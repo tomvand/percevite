@@ -8,7 +8,8 @@
     <!-- Parameters based on SLAMDunk default /etc/kalamos/stereo.yml -->
     <param name="correlation_window_size" value="7"/>
     <param name="disparity_range" value="64"/>
-    <param name="uniqueness_ratio" value="1.30"/>
+    <param name="uniqueness_ratio" value="15.0"/>
+    <param name="speckle_size" value="300"/>
     <param name="texture_threshold" value="5.0"/>
   </node>
   
