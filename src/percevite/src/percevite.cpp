@@ -226,9 +226,10 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
   const float F_disp = 425.0; // C-Space z focal length
   const float B = 0.20; // Baseline
   const int ndisp = 64;
+  const float rv = 3.0;
 
-  int debug_xq = 999.0; // TODO clean up
-  int debug_yq = 999.0;
+  int debug_xq = 999; // TODO clean up
+  int debug_yq = 999;
 
   // Convert messages to OpenCV Mat_s
   cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
@@ -256,6 +257,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double ry = request(1, 0);
     double rz = request(2, 0);
 
+    // Find requested position in image
     int xq = cspace.cols / 2.0 + rx / rz * F;
     int yq = cspace.rows / 2.0 + ry / rz * F;
     if(rz > 0) {
@@ -263,21 +265,48 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       debug_yq = yq * F_disp / F;
     }
 
-    double x, y, z;
+    // Find safe straight-line distance towards goal
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
       double d = cspace(yq, xq);
       if(d < (ndisp - 1)) {
         z = F_disp * B / d;
-      } else { // Inside safety radius
-        z = 0.0;
+        if(z > rz) z = rz; // Straight line towards goal or closest obstacle
+        x = rx / rz * z;
+        y = ry / rz * z;
       }
-      if(z > rz) z = rz; // Do not move past goal
-      x = rx / rz * z;
-      y = ry / rz * z;
-    } else {
-      x = 0.0; // Not in view, so can't guarantee safety
-      y = 0.0;
-      z = 0.0;
+    }
+
+    if(rz > z) { // Goal lies behind obstacle, need to find way around
+      // Find alternative route dev px to the side
+      // TODO Check multiple possibilities along row, not just closest
+      // (which may avoid just one branch!)
+      for(int dev = 1; dev < cspace.cols; ++dev) { // CAUTION: should sample in horizontal plane instead of image x!
+        if(xq - dev >= 0) { // Check left route
+          double dleft = cspace(yq, xq - dev);
+          double dright = cspace(yq, xq - dev + 1);
+          double zleft = F_disp * B / dleft; // Note: can be Inf
+          double zright = F_disp * B / dright;
+          if((zleft - zright) > (2 * rv)) { // Possible gap between obstacles
+            z = zright  +rv;
+            x = (xq - dev - cspace.cols / 2) / F * z;
+            y = (yq - cspace.rows / 2) / F * z;
+          }
+        }
+        if(xq + dev < cspace.cols) { // Check right route
+          double dleft = cspace(yq, xq + dev);
+          double dright = cspace(yq, xq + dev - 1);
+          double zleft = F_disp * B / dleft; // Note: can be Inf
+          double zright = F_disp * B / dright;
+          if((zright - zleft) > (2 * rv)) { // Possible gap between obstacles
+            z = zleft  +rv;
+            x = (xq + dev - cspace.cols / 2) / F * z;
+            y = (yq - cspace.rows / 2) / F * z;
+          }
+        }
+      }
     }
 
     cv::Mat_<double> reply(3, 1);
@@ -304,6 +333,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     // Overlay cspace and color images
     cspace.convertTo(cspace_u8, CV_8U, 255.0 / (double)ndisp);
     cv::applyColorMap(cspace_u8, cspace_rgb, cv::COLORMAP_JET);
+    cspace_rgb.setTo(cv::Vec3b(128, 128, 128), cspace == 0.0);
     cspace_rgb.setTo(cv::Vec3b(255, 255, 255), cspace_nan);
     cv::resize(cspace_rgb, cspace_rgb, color.size(), 0, 0, CV_INTER_NN);
     cv::addWeighted(cspace_rgb, 0.5, color, 0.5, 0, debug);
