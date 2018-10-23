@@ -13,6 +13,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <algorithm>
+#include <cstdio>
 
 #include "percevite_pprzlink.hpp"
 #include "percevite_messages.h"
@@ -63,6 +65,12 @@ T bound(const T& val, const T& min, const T& max) {
   if(val > max) return max;
   return val;
 }
+
+//template <typename T>
+//T min(const T& a, const T& b) {
+//  if(a < b) return a;
+//  return b;
+//}
 
 struct slamdunk_orientation_t {
 	ros::Subscriber sub;
@@ -220,14 +228,64 @@ void on_image(
 
 }
 
+
+const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
+const float F_disp = 425.0; // C-Space z focal length
+const float B = 0.20; // Baseline
+const int ndisp = 64;
+const float rv = 2.0; // Keep-out radius
+
+double vector_cost(const cv::Point3_<double>& goal_cam,
+    const cv::Point3_<double>& vector_cam, double zmax) {
+  // Calculate closest distance between point and vector between zmin and zmax
+  cv::Point3_<double> vec_n(vector_cam / cv::norm(vector_cam));
+  cv::Point3_<double> pt_closest(goal_cam.dot(vec_n) * vec_n);
+  if(pt_closest.z > zmax) {
+    pt_closest *= (zmax / pt_closest.z);
+  }
+  return cv::norm(goal_cam - pt_closest);
+}
+
+cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
+    const cv::Point3_<double>& goal_cam, const cv::Point_<double>& origin,
+    double phi, double& best_cost) {
+  // Find vector along world-horizontal line through origin that minimizes cost
+  cv::Point3_<double> best_vector(0.0, 0.0, 0.0);
+  best_cost = 99999.0;
+//  printf("goal.x = %.1f, .y = %.1f, .z = %.1f\n", goal_cam.x, goal_cam.y, goal_cam.z);
+  for(int x = 1; x < cspace.cols; ++x) {
+    int dx = x - origin.x;
+    int y = origin.y - dx * sin(phi);
+//    std::printf("(%d, %d)\n", x, y);
+    if(y > 0 && y < cspace.rows) {
+      double dleft = cspace(y, x - 1);
+      double dright = cspace(y, x);
+      double zleft = F_disp * B / dleft; // CAUTION: zleft and zright can be Inf
+      double zright = F_disp * B / dright;
+//      printf("\tzl = %.1fm, zr = %.1fm\n", zleft, zright);
+      if((x < origin.x && zleft > zright) || (x > origin.x && zleft < zright)) {
+        double zmin = std::min(zleft, zright) + rv;
+        double zmax = std::max(zleft, zright) - rv;
+//        printf("\tzmin = %.1fm, zmax = %.1fm\n", zmin, zmax);
+        cv::Point3_<double> vector(
+            (x - cspace.cols / 2) / F * zmin,
+            (y - cspace.rows / 2) / F * zmin,
+            zmin);
+//        printf("\tv.x = %.1fm, v.y = %.1fm, v.z = %.1fm\n", vector.x, vector.y, vector.z);
+        double cost = vector_cost(goal_cam, vector, zmax);
+//        printf("\tcost = %.1fm\n", cost);
+        if(cost < best_cost) {
+          best_cost = cost;
+          best_vector = vector;
+        }
+      }
+    }
+  }
+  return best_vector;
+}
+
 void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     const sensor_msgs::ImageConstPtr &color_msg) {
-  const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
-  const float F_disp = 425.0; // C-Space z focal length
-  const float B = 0.20; // Baseline
-  const int ndisp = 64;
-  const float rv = 3.0;
-
   int debug_xq = 999; // TODO clean up
   int debug_yq = 999;
 
@@ -279,35 +337,50 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(rz > z) { // Goal lies behind obstacle, need to find way around
-      // Find alternative route dev px to the side
-      // TODO Check multiple possibilities along row, not just closest
-      // (which may avoid just one branch!)
-      for(int dev = 1; dev < cspace.cols; ++dev) { // CAUTION: should sample in horizontal plane instead of image x!
-        if(xq - dev >= 0) { // Check left route
-          double dleft = cspace(yq, xq - dev);
-          double dright = cspace(yq, xq - dev + 1);
-          double zleft = F_disp * B / dleft; // Note: can be Inf
-          double zright = F_disp * B / dright;
-          if((zleft - zright) > (2 * rv)) { // Possible gap between obstacles
-            z = zright  +rv;
-            x = (xq - dev - cspace.cols / 2) / F * z;
-            y = (yq - cspace.rows / 2) / F * z;
-          }
-        }
-        if(xq + dev < cspace.cols) { // Check right route
-          double dleft = cspace(yq, xq + dev);
-          double dright = cspace(yq, xq + dev - 1);
-          double zleft = F_disp * B / dleft; // Note: can be Inf
-          double zright = F_disp * B / dright;
-          if((zright - zleft) > (2 * rv)) { // Possible gap between obstacles
-            z = zleft  +rv;
-            x = (xq + dev - cspace.cols / 2) / F * z;
-            y = (yq - cspace.rows / 2) / F * z;
-          }
-        }
-      }
+    if(rz > z) {
+      //  Search closest subgoal
+      cv::Point3_<double> goal_cam(rx, ry, rz);
+      cv::Point_<double> origin(xq, yq);
+      double best_cost;
+      cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
+      ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
+      ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
+      x = vector.x;
+      y = vector.y;
+      z = vector.z;
     }
+
+//
+//    if(rz > z) { // Goal lies behind obstacle, need to find way around
+//      // Find alternative route dev px to the side
+//      // TODO Check multiple possibilities along row, not just closest
+//      // (which may avoid just one branch!)
+//      for(int dev = 1; dev < cspace.cols; ++dev) { // CAUTION: should sample in horizontal plane instead of image x!
+//        if(xq - dev >= 0) { // Check left route
+//          double dleft = cspace(yq, xq - dev);
+//          double dright = cspace(yq, xq - dev + 1);
+//          double zleft = F_disp * B / dleft; // Note: can be Inf
+//          double zright = F_disp * B / dright;
+//          if((zleft - zright) > (2 * rv)) { // Possible gap between obstacles
+//            z = zright  +rv;
+//            x = (xq - dev - cspace.cols / 2) / F * z;
+//            y = (yq - cspace.rows / 2) / F * z;
+//          }
+//        }
+//        if(xq + dev < cspace.cols) { // Check right route
+//          double dleft = cspace(yq, xq + dev);
+//          double dright = cspace(yq, xq + dev - 1);
+//          double zleft = F_disp * B / dleft; // Note: can be Inf
+//          double zright = F_disp * B / dright;
+//          if((zright - zleft) > (2 * rv)) { // Possible gap between obstacles
+//            z = zleft  +rv;
+//            x = (xq + dev - cspace.cols / 2) / F * z;
+//            y = (yq - cspace.rows / 2) / F * z;
+//          }
+//        }
+//      }
+//    }
+
 
     cv::Mat_<double> reply(3, 1);
     reply << x, y, z;

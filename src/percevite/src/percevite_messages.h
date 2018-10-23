@@ -27,6 +27,9 @@ union paparazzi_to_slamdunk_msg_t {
 		float tx; // [m] Front-right-down vector towards target waypoint
 		float ty;
 		float tz;
+		float phi; // [rad] PRY euler angles
+		float theta;
+		float psi;
 	};
 	unsigned char bytes;
 } __attribute((__packed__));
