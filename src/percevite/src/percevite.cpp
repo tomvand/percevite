@@ -230,11 +230,20 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
   int debug_xq = 999.0; // TODO clean up
   int debug_yq = 999.0;
 
+  // Convert messages to OpenCV Mat_s
   cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
       (float*)(&(cspace_msg->data[0])));
   cv_bridge::CvImageConstPtr cv_color_ptr = cv_bridge::toCvShare(color_msg, "bgr8");
   cv::Mat color = cv_color_ptr->image;
 
+  // Interpret C-Space NaN as inifinitely far away
+  // Assumes that at least some points of all obstacles are detected and
+  // expanded with a large enough radius. Tweak stereo parameters to ensure
+  // this.
+  cv::Mat cspace_nan(cspace != cspace);
+  cspace.setTo(0, cspace_nan);
+
+  // Handle requests from paparazzi
   PaparazziToSlamdunkMsg request_msg;
   if(pprzlink.read(sizeof(request_msg), &request_msg.bytes)) {
     ROS_INFO("Request (FRD): tx = %f, ty = %f, tz = %f",
@@ -242,14 +251,10 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
 
     cv::Mat_<double> request_frd(3, 1);
     request_frd << request_msg.tx, request_msg.ty, request_msg.tz;
-//    ROS_INFO_STREAM("request_frd " << request_frd);
     cv::Mat_<double> request(slamdunk_orientation.R_frd_cam.t() * request_frd);
-//    ROS_INFO_STREAM("Request (CAM VEC) " << request);
     double rx = request(0, 0);
     double ry = request(1, 0);
     double rz = request(2, 0);
-
-//    ROS_INFO("Request (CAM): tx = %f, ty = %f, tz = %f", rx, ry, rz);
 
     int xq = cspace.cols / 2.0 + rx / rz * F;
     int yq = cspace.rows / 2.0 + ry / rz * F;
@@ -261,9 +266,6 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double x, y, z;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
       double d = cspace(yq, xq);
-      if(std::isnan(d)) {
-        d = 0; // Assume NaNs appear in sky (far away)
-      }
       if(d < (ndisp - 1)) {
         z = F_disp * B / d;
       } else { // Inside safety radius
@@ -302,8 +304,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     // Overlay cspace and color images
     cspace.convertTo(cspace_u8, CV_8U, 255.0 / (double)ndisp);
     cv::applyColorMap(cspace_u8, cspace_rgb, cv::COLORMAP_JET);
-    cv::Mat nan_mask(cspace != cspace);
-    cspace_rgb.setTo(cv::Vec3b(255, 255, 255), nan_mask);
+    cspace_rgb.setTo(cv::Vec3b(255, 255, 255), cspace_nan);
     cv::resize(cspace_rgb, cspace_rgb, color.size(), 0, 0, CV_INTER_NN);
     cv::addWeighted(cspace_rgb, 0.5, color, 0.5, 0, debug);
 
