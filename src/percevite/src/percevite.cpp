@@ -253,7 +253,7 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
   cv::Point3_<double> best_vector(0.0, 0.0, 0.0);
   best_cost = 99999.0;
 //  printf("goal.x = %.1f, .y = %.1f, .z = %.1f\n", goal_cam.x, goal_cam.y, goal_cam.z);
-  for(int x = 1; x < cspace.cols; ++x) {
+  for(int x = 0.20 * cspace.cols; x < 0.80 * cspace.cols; ++x) {
     int dx = x - origin.x;
     int y = origin.y - dx * sin(phi);
 //    std::printf("(%d, %d)\n", x, y);
@@ -288,6 +288,10 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     const sensor_msgs::ImageConstPtr &color_msg) {
   int debug_xq = 999; // TODO clean up
   int debug_yq = 999;
+
+  double debug_x = 0.0;
+  double debug_y = 0.0;
+  double debug_z = 0.0;
 
   // Convert messages to OpenCV Mat_s
   cv::Mat_<float> cspace(cspace_msg->height, cspace_msg->width,
@@ -384,6 +388,9 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
 
     cv::Mat_<double> reply(3, 1);
     reply << x, y, z;
+    debug_x = x;
+    debug_y = y;
+    debug_z = z;
     cv::Mat_<double> reply_frd(slamdunk_orientation.R_frd_cam * reply);
     rx = reply_frd(0, 0);
     ry = reply_frd(1, 0);
@@ -420,6 +427,18 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
           cv::Point_<int>(debug_xq, debug_yq + 10.0)
       };
       cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 165, 255));
+    }
+
+    // Draw vector marker
+    if(debug_z > 0.0) {
+      int x = debug.cols / 2 + debug_x / debug_z * F_disp;
+      int y = debug.rows / 2 + debug_y / debug_z * F_disp;
+      cv::Point_<int> points[] = {
+          cv::Point_<int>(x - 7.0, y - 7.0),
+          cv::Point_<int>(x + 7.0, y - 7.0),
+          cv::Point_<int>(x, y + 7.0)
+      };
+      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 255, 0));
     }
 
     sensor_msgs::ImagePtr debug_msg = cv_bridge::CvImage(cspace_msg->header,
