@@ -6,7 +6,8 @@
 
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
-#include <message_filters/time_synchronizer.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -477,8 +478,9 @@ int main(int argc, char **argv) {
 	image_transport::ImageTransport it(nh);
 	image_transport::SubscriberFilter sf_cspace(it, "/cspace_map/image", 1);
 	image_transport::SubscriberFilter sf_color(it, "/left_rgb_rect/image_rect_color", 1);
-	message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image>
-	    sync(sf_cspace, sf_color, 1);
+
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> MySyncPolicy;
+	message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), sf_cspace, sf_color);
 	sync.registerCallback(on_cspace);
 
 	// Advertise debug image
