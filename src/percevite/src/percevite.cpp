@@ -238,7 +238,7 @@ const float rv = 2.0; // Keep-out radius
 double vector_cost(const cv::Point3_<double>& goal_cam,
     const cv::Point3_<double>& vector_cam, double zmax) {
   // Calculate closest distance between point and vector between zmin and zmax
-  cv::Point3_<double> vec_n(vector_cam / cv::norm(vector_cam));
+  cv::Point3_<double> vec_n(cv::Vec3d(vector_cam) / cv::norm(vector_cam)); // Note: Vec3d cast for opencv2.4 compatibility
   cv::Point3_<double> pt_closest(goal_cam.dot(vec_n) * vec_n);
   if(pt_closest.z > zmax) {
     pt_closest *= (zmax / pt_closest.z);
@@ -426,7 +426,8 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
           cv::Point_<int>(debug_xq + 10.0, debug_yq - 10.0),
           cv::Point_<int>(debug_xq, debug_yq + 10.0)
       };
-      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 165, 255));
+//      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 165, 255));
+      cv::fillConvexPoly(debug, points, 3, cv::Scalar_<uint8_t>(0, 165, 255, 255));
     }
 
     // Draw vector marker
@@ -438,7 +439,8 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
           cv::Point_<int>(x + 7.0, y - 7.0),
           cv::Point_<int>(x, y + 7.0)
       };
-      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 255, 0));
+//      cv::fillConvexPoly(debug, points, 3, cv::Vec3b(0, 255, 0));
+      cv::fillConvexPoly(debug, points, 3, cv::Scalar_<uint8_t>(0, 255, 0, 255));
     }
 
     sensor_msgs::ImagePtr debug_msg = cv_bridge::CvImage(cspace_msg->header,
