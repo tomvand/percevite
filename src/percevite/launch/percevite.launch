@@ -13,7 +13,7 @@
     <remap from="depth_image" to="/depth_map/image"/>
   </node>
   
-  <node pkg="cspace" type="cspace" name="cspace">
+  <node pkg="cspace" type="cspace" name="cspace" output="screen">
     <remap from="disp_image" to="/disp_map/image"/>
     <remap from="cspace_image" to="/cspace_map/image"/>
   </node>
