@@ -400,9 +400,14 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     ROS_INFO("Reply (FRD): rx = %f, ry = %f, rz = %f", rx, ry, rz);
     SlamdunkToPaparazziMsg msg;
     msg.flags = SD_MSG_FLAG_VECTOR;
-    msg.gx  =rx;
+    msg.gx = rx;
     msg.gy = ry;
     msg.gz = rz;
+    pprzlink.write(sizeof(msg), &msg.bytes);
+  } else { // Did not receive request
+    // Send empty message to show that the connection is still alive
+    SlamdunkToPaparazziMsg msg;
+    msg.flags = 0x0;
     pprzlink.write(sizeof(msg), &msg.bytes);
   }
 
