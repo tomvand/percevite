@@ -267,10 +267,11 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
       if((x < origin.x && zleft > zright + 2 * rv) || (x > origin.x && zleft + 2 * rv < zright)) {
         double zmin = std::min(zleft, zright) + 2 * rv;
         double zmax = std::max(zleft, zright);
+        double z = std::min(goal_cam.z, zmax);
         cv::Point3_<double> vector(
-            (x - cspace.cols / 2) / F * zmin,
-            (y - cspace.rows / 2) / F * zmin,
-            zmin);
+            (x - cspace.cols / 2) / F * z,
+            (y - cspace.rows / 2) / F * z,
+            z);
         double cost = vector_cost(goal_cam, vector, zmin, zmax);
         if(cost < best_cost) {
           best_cost = cost;
