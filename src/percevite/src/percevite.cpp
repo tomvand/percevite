@@ -241,6 +241,9 @@ double vector_cost(const cv::Point3_<double>& goal_cam,
   // Calculate closest distance between point and vector between zmin and zmax
   cv::Point3_<double> vec_n(cv::Vec3d(vector_cam) / cv::norm(vector_cam)); // Note: Vec3d cast for opencv2.4 compatibility
   cv::Point3_<double> pt_closest(goal_cam.dot(vec_n) * vec_n);
+  if(pt_closest.z < 0) {
+    pt_closest *= 0.0;
+  }
   if(pt_closest.z > zmax) {
     pt_closest *= (zmax / pt_closest.z);
   }
