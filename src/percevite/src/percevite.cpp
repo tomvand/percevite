@@ -237,12 +237,12 @@ const int ndisp = 64;
 const float rv = 2.0; // Keep-out radius
 
 double vector_cost(const cv::Point3_<double>& goal_cam,
-    const cv::Point3_<double>& vector_cam, double zmax) {
+    const cv::Point3_<double>& vector_cam, double zmin, double zmax) {
   // Calculate closest distance between point and vector between zmin and zmax
   cv::Point3_<double> vec_n(cv::Vec3d(vector_cam) / cv::norm(vector_cam)); // Note: Vec3d cast for opencv2.4 compatibility
   cv::Point3_<double> pt_closest(goal_cam.dot(vec_n) * vec_n);
-  if(pt_closest.z < 0) {
-    pt_closest *= 0.0;
+  if(pt_closest.z < zmin) {
+    pt_closest *= (zmin / pt_closest.z);
   }
   if(pt_closest.z > zmax) {
     pt_closest *= (zmax / pt_closest.z);
@@ -271,7 +271,7 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
             (x - cspace.cols / 2) / F * zmin,
             (y - cspace.rows / 2) / F * zmin,
             zmin);
-        double cost = vector_cost(goal_cam, vector, zmax);
+        double cost = vector_cost(goal_cam, vector, zmin, zmax);
         if(cost < best_cost) {
           best_cost = cost;
           best_vector = vector;
@@ -361,7 +361,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(z < rz) {
+    if(z < rz) { // Note: does not search for subgoals when facing away from goal (rz < 0)!
       //  Search closest subgoal
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
