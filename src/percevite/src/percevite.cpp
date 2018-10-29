@@ -256,33 +256,47 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
   // Find vector along world-horizontal line through origin that minimizes cost
   cv::Point3_<double> best_vector(0.0, 0.0, 0.0);
   best_cost = 99999.0;
-//  printf("goal.x = %.1f, .y = %.1f, .z = %.1f\n", goal_cam.x, goal_cam.y, goal_cam.z);
   for(int x = 0.20 * cspace.cols; x < 0.80 * cspace.cols; ++x) {
     int dx = x - origin.x;
     int y = origin.y - dx * tan(phi);
-//    std::printf("(%d, %d)\n", x, y);
     if(y > 0 && y < cspace.rows) {
       double dleft = cspace(y, x - 1);
       double dright = cspace(y, x);
       double zleft = F_disp * B / dleft; // CAUTION: zleft and zright can be Inf
       double zright = F_disp * B / dright;
-//      printf("\tzl = %.1fm, zr = %.1fm\n", zleft, zright);
       if((x < origin.x && zleft > zright) || (x > origin.x && zleft < zright)) {
         double zmin = std::min(zleft, zright) + rv;
         double zmax = std::max(zleft, zright) - rv;
-//        printf("\tzmin = %.1fm, zmax = %.1fm\n", zmin, zmax);
         cv::Point3_<double> vector(
             (x - cspace.cols / 2) / F * zmin,
             (y - cspace.rows / 2) / F * zmin,
             zmin);
-//        printf("\tv.x = %.1fm, v.y = %.1fm, v.z = %.1fm\n", vector.x, vector.y, vector.z);
         double cost = vector_cost(goal_cam, vector, zmax);
-//        printf("\tcost = %.1fm\n", cost);
         if(cost < best_cost) {
           best_cost = cost;
           best_vector = vector;
         }
       }
+    }
+  }
+  return best_vector;
+}
+
+cv::Point3_<double> vector_search(uint8_t flags, const cv::Mat_<float>& cspace,
+    const cv::Point3_<double>& goal_cam, const cv::Point_<double>& origin,
+    double phi, double& best_cost) {
+  cv::Point3_<double> best_vector(0.0, 0.0, 0.0);
+  best_cost = 99999.0;
+  for(int dy = -20; dy <= 20; ++dy) {
+    int dx = dy * tan(phi);
+    cv::Point_<double> query(origin.x + dx, origin.y + dy);
+    double cost;
+    if(dy < 0 && !(flags & REQUEST_FLAG_ALLOW_HIGHER)) continue;
+    if(dy > 0 && !(flags & REQUEST_FLAG_ALLOW_LOWER)) continue;
+    cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, query, phi, cost);
+    if(cost < best_cost) {
+      best_cost = cost;
+      best_vector = vector;
     }
   }
   return best_vector;
@@ -352,7 +366,8 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
       double best_cost;
-      cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
+//      cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
+      cv::Point3_<double> vector = vector_search(request_msg.request_flags, cspace, goal_cam, origin, request_msg.phi, best_cost);
       status = VECTOR_FLAG_SUBGOAL;
       ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
       ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
