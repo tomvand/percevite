@@ -264,9 +264,9 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
       double dright = cspace(y, x);
       double zleft = F_disp * B / dleft; // CAUTION: zleft and zright can be Inf
       double zright = F_disp * B / dright;
-      if((x < origin.x && zleft > zright) || (x > origin.x && zleft < zright)) {
-        double zmin = std::min(zleft, zright) + rv;
-        double zmax = std::max(zleft, zright) - rv;
+      if((x < origin.x && zleft > zright + 2 * rv) || (x > origin.x && zleft + 2 * rv < zright)) {
+        double zmin = std::min(zleft, zright) + 2 * rv;
+        double zmax = std::max(zleft, zright);
         cv::Point3_<double> vector(
             (x - cspace.cols / 2) / F * zmin,
             (y - cspace.rows / 2) / F * zmin,
@@ -361,7 +361,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(rz > z) {
+    if(z < rz) {
       //  Search closest subgoal
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
@@ -374,9 +374,19 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       x = vector.x;
       y = vector.y;
       z = vector.z;
-      if(vector.x == 0.0 && vector.y == 0.0 && vector.z == 0.0) {
-        status = VECTOR_FLAG_STUCK;
-      }
+    }
+
+    static bool stuck = false;
+    bool goal_in_view = rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows;
+    if(goal_in_view && z == 0.0) {
+      stuck = true;
+    }
+    if(goal_in_view && z > 0.0) {
+      stuck = false;
+    }
+    if(stuck) {
+      ROS_INFO("Stuck!");
+      status = VECTOR_FLAG_STUCK;
     }
 
     cv::Mat_<double> reply(3, 1);
