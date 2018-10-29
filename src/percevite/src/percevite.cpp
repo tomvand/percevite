@@ -259,7 +259,7 @@ cv::Point3_<double> vector_search_horizontal(const cv::Mat_<float>& cspace,
 //  printf("goal.x = %.1f, .y = %.1f, .z = %.1f\n", goal_cam.x, goal_cam.y, goal_cam.z);
   for(int x = 0.20 * cspace.cols; x < 0.80 * cspace.cols; ++x) {
     int dx = x - origin.x;
-    int y = origin.y - dx * sin(phi);
+    int y = origin.y - dx * tan(phi);
 //    std::printf("(%d, %d)\n", x, y);
     if(y > 0 && y < cspace.rows) {
       double dleft = cspace(y, x - 1);
