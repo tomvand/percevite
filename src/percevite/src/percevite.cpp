@@ -323,6 +323,8 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double ry = request(1, 0);
     double rz = request(2, 0);
 
+    uint8_t status = VECTOR_FLAG_DIRECT;
+
     // Find requested position in image
     int xq = cspace.cols / 2.0 + rx / rz * F;
     int yq = cspace.rows / 2.0 + ry / rz * F;
@@ -351,44 +353,16 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       cv::Point_<double> origin(xq, yq);
       double best_cost;
       cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
+      status = VECTOR_FLAG_SUBGOAL;
       ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
       ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
       x = vector.x;
       y = vector.y;
       z = vector.z;
+      if(vector.x == 0.0 && vector.y == 0.0 && vector.z == 0.0) {
+        status = VECTOR_FLAG_STUCK;
+      }
     }
-
-//
-//    if(rz > z) { // Goal lies behind obstacle, need to find way around
-//      // Find alternative route dev px to the side
-//      // TODO Check multiple possibilities along row, not just closest
-//      // (which may avoid just one branch!)
-//      for(int dev = 1; dev < cspace.cols; ++dev) { // CAUTION: should sample in horizontal plane instead of image x!
-//        if(xq - dev >= 0) { // Check left route
-//          double dleft = cspace(yq, xq - dev);
-//          double dright = cspace(yq, xq - dev + 1);
-//          double zleft = F_disp * B / dleft; // Note: can be Inf
-//          double zright = F_disp * B / dright;
-//          if((zleft - zright) > (2 * rv)) { // Possible gap between obstacles
-//            z = zright  +rv;
-//            x = (xq - dev - cspace.cols / 2) / F * z;
-//            y = (yq - cspace.rows / 2) / F * z;
-//          }
-//        }
-//        if(xq + dev < cspace.cols) { // Check right route
-//          double dleft = cspace(yq, xq + dev);
-//          double dright = cspace(yq, xq + dev - 1);
-//          double zleft = F_disp * B / dleft; // Note: can be Inf
-//          double zright = F_disp * B / dright;
-//          if((zright - zleft) > (2 * rv)) { // Possible gap between obstacles
-//            z = zleft  +rv;
-//            x = (xq + dev - cspace.cols / 2) / F * z;
-//            y = (yq - cspace.rows / 2) / F * z;
-//          }
-//        }
-//      }
-//    }
-
 
     cv::Mat_<double> reply(3, 1);
     reply << x, y, z;
@@ -403,6 +377,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     ROS_INFO("Reply (FRD): rx = %f, ry = %f, rz = %f", rx, ry, rz);
     SlamdunkToPaparazziMsg msg;
     msg.flags = SD_MSG_FLAG_VECTOR;
+    msg.vector_flags = status;
     msg.gx = rx;
     msg.gy = ry;
     msg.gz = rz;
