@@ -338,6 +338,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double ry = request(1, 0);
     double rz = request(2, 0);
 
+    static bool stuck = false; // Static for simple state machine
     uint8_t status = 0x00;
 
     // Find requested position in image
@@ -366,7 +367,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(z < rz) { // Note: does not search for subgoals when facing away from goal (rz < 0)!
+    if(z < rz && ((status & VECTOR_FLAG_GOAL_IN_VIEW) || stuck)) { // Note: does not search for subgoals when facing away from goal (rz < 0)!
       //  Search closest subgoal
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
@@ -380,7 +381,6 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       z = vector.z;
     }
 
-    static bool stuck = false;
     bool goal_in_view = rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows;
     if(goal_in_view && z == 0.0) {
       stuck = true;
