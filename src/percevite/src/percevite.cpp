@@ -338,7 +338,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double ry = request(1, 0);
     double rz = request(2, 0);
 
-    uint8_t status = VECTOR_FLAG_DIRECT;
+    uint8_t status = 0x00;
 
     // Find requested position in image
     int xq = cspace.cols / 2.0 + rx / rz * F;
@@ -353,10 +353,14 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double y = 0.0;
     double z = 0.0;
     if(rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows) {
+      status |= VECTOR_FLAG_GOAL_IN_VIEW;
       double d = cspace(yq, xq);
-      if(d < (ndisp - 1)) {
+      if(d < (ndisp - 1)) { // d is larger than ndisp - 1 when inside safety radius
         z = F_disp * B / d;
-        if(z > rz) z = rz; // Straight line towards goal or closest obstacle
+        if(z > rz){ // Straight line towards goal or closest obstacle
+          status |= VECTOR_FLAG_DIRECT;
+          z = rz;
+        }
         x = rx / rz * z;
         y = ry / rz * z;
       }
@@ -369,7 +373,6 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       double best_cost;
 //      cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
       cv::Point3_<double> vector = vector_search(request_msg.request_flags, cspace, goal_cam, origin, request_msg.phi, best_cost);
-      status = VECTOR_FLAG_SUBGOAL;
       ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
       ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
       x = vector.x;
@@ -387,7 +390,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     }
     if(stuck) {
       ROS_INFO("Stuck!");
-      status = VECTOR_FLAG_STUCK;
+      status |= VECTOR_FLAG_STUCK;
     }
 
     cv::Mat_<double> reply(3, 1);
