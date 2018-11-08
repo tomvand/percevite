@@ -19,5 +19,7 @@
     <param name="rv" value="1.0"/>
   </node>
   
-  <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen"/>
+  <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen">
+    <param name="rv" value="1.0"/>
+  </node>
 </launch>

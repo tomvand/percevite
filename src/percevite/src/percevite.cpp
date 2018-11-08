@@ -234,7 +234,7 @@ const float F = 425.0 / 6.0; // TODO REMOVE. C-Space map x,y focal length
 const float F_disp = 425.0; // C-Space z focal length
 const float B = 0.20; // Baseline
 const int ndisp = 64;
-const float rv = 2.0; // Keep-out radius
+float rv = 2.0; // Keep-out radius
 
 double vector_cost(const cv::Point3_<double>& goal_cam,
     const cv::Point3_<double>& vector_cam, double zmin, double zmax) {
@@ -500,6 +500,10 @@ int main(int argc, char **argv) {
 	// Advertise debug image
 	image_transport::ImageTransport it_private(nh_private);
 	pub_debug = it_private.advertise("debug_image", 1);
+
+	// HACK read rv
+	nh_private.getParam("rv", rv);
+	ROS_INFO("rv = %fm", rv);
 
 	// Initialize pprzlink
 	pprzlink.init();
