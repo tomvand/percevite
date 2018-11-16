@@ -369,7 +369,7 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(!(status & VECTOR_FLAG_DIRECT)) {
+    if((status & VECTOR_FLAG_GOAL_IN_VIEW) && !(status & VECTOR_FLAG_DIRECT)) {
       //  Search closest subgoal
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
