@@ -7,7 +7,7 @@
     <param name="scale_height" value="0.5"/>
   </node>
 
-  <node pkg="openevo" type="openevo_node" name="openevo" respawn="true" clear_params="true" output="screen">
+  <node pkg="openevo" type="openevo_node" name="openevo" clear_params="true" output="screen">
     <remap from="image" to="/downscale_img/image"/>
     <remap from="camera_info" to="/downscale_img/camera_info"/>
     <remap from="depth_image" to="/depth_map/image"/>
@@ -16,10 +16,10 @@
   <node pkg="cspace" type="cspace" name="cspace" clear_params="true" output="screen">
     <remap from="disp_image" to="/disp_map/image"/>
     <remap from="cspace_image" to="/cspace_map/image"/>
-    <param name="rv" value="1.0"/>
+    <param name="rv" value="2.0"/>
   </node>
   
-  <node pkg="percevite" type="percevite_node" name="percevite" required="true" clear_params="true" output="screen">
-    <param name="rv" value="1.0"/>
+  <node pkg="percevite" type="percevite_node" name="percevite" clear_params="true" output="screen">
+    <param name="rv" value="2.0"/>
   </node>
 </launch>
