@@ -369,31 +369,35 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     }
 
-    if(z < rz && ((status & VECTOR_FLAG_GOAL_IN_VIEW) || stuck)) { // Note: does not search for subgoals when facing away from goal (rz < 0)!
+    if(!(status & VECTOR_FLAG_DIRECT)) {
       //  Search closest subgoal
       cv::Point3_<double> goal_cam(rx, ry, rz);
       cv::Point_<double> origin(xq, yq);
       double best_cost;
 //      cv::Point3_<double> vector = vector_search_horizontal(cspace, goal_cam, origin, request_msg.phi, best_cost);
       cv::Point3_<double> vector = vector_search(request_msg.request_flags, cspace, goal_cam, origin, request_msg.phi, best_cost);
-      ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
-      ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
-      x = vector.x;
-      y = vector.y;
-      z = vector.z;
-    }
+      if(vector.z > 0.0) {
+        status |= VECTOR_FLAG_SUBGOAL;
+        ROS_INFO("Original goal (CAM): %.1f, %.1f, %.1f", x, y, z);
+        ROS_INFO("Subgoal (CAM):       %.1f, %.1f, %.1f @ %.1fm", vector.x, vector.y, vector.z, best_cost);
+        x = vector.x;
+        y = vector.y;
+        z = vector.z;
+      }
+    } // else: maintain straight line towards goal
 
-    bool goal_in_view = rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows;
-    if(goal_in_view && z == 0.0) {
-      stuck = true;
-    }
-    if(goal_in_view && z > 0.0) {
-      stuck = false;
-    }
-    if(stuck) {
-      ROS_INFO("Stuck!");
-      status |= VECTOR_FLAG_STUCK;
-    }
+
+//    bool goal_in_view = rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows;
+//    if(goal_in_view && z == 0.0) {
+//      stuck = true;
+//    }
+//    if(goal_in_view && z > 0.0) {
+//      stuck = false;
+//    }
+//    if(stuck) {
+//      ROS_INFO("Stuck!");
+//      status |= VECTOR_FLAG_STUCK;
+//    }
 
     cv::Mat_<double> reply(3, 1);
     reply << x, y, z;

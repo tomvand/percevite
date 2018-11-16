@@ -17,6 +17,7 @@ enum vector_flags_t {
   VECTOR_FLAG_DIRECT        = 0x1,
   VECTOR_FLAG_STUCK         = 0x2,
   VECTOR_FLAG_GOAL_IN_VIEW  = 0x4,
+  VECTOR_FLAG_SUBGOAL       = 0x8,
 };
 
 union slamdunk_to_paparazzi_msg_t {
