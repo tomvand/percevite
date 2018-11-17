@@ -340,7 +340,6 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
     double ry = request(1, 0);
     double rz = request(2, 0);
 
-    static bool stuck = false; // Static for simple state machine
     uint8_t status = 0x00;
 
     // Find requested position in image
@@ -386,18 +385,30 @@ void on_cspace(const sensor_msgs::ImageConstPtr &cspace_msg,
       }
     } // else: maintain straight line towards goal
 
+    // Travel forward when drone is stuck
+    static bool stuck = false; // Static for simple state machine
+    static int stuck_counter = 0;
+    if((status & VECTOR_FLAG_GOAL_IN_VIEW) && z == 0.0) {
+      stuck = true;
+    } else if (stuck_counter > 100 || (abs(rx / rz) < 0.05 && z > 0.0)) {
+      stuck = false;
+    }
+    if(stuck) {
+      ROS_INFO("Stuck!");
+      status |= VECTOR_FLAG_STUCK;
+      x = 0.0;
+      y = 0.0;
+      double d = cspace(cspace.rows / 2, cspace.cols / 2);
+      if(d < (ndisp - 1)) {
+        z = F_disp * B / d;
+      } else {
+        z = 0.0;
+      }
+      ++stuck_counter;
+    } else {
+      stuck_counter = 0;
+    }
 
-//    bool goal_in_view = rz > 0 && xq >= 0 && xq < cspace.cols && yq >= 0 && yq < cspace.rows;
-//    if(goal_in_view && z == 0.0) {
-//      stuck = true;
-//    }
-//    if(goal_in_view && z > 0.0) {
-//      stuck = false;
-//    }
-//    if(stuck) {
-//      ROS_INFO("Stuck!");
-//      status |= VECTOR_FLAG_STUCK;
-//    }
 
     cv::Mat_<double> reply(3, 1);
     reply << x, y, z;
