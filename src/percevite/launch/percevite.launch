@@ -17,6 +17,7 @@
     <remap from="disp_image" to="/disp_map/image"/>
     <remap from="cspace_image" to="/cspace_map/image"/>
     <param name="rv" value="2.0"/>
+    <param name="y_factor" value="0.50"/>
   </node>
   
   <node pkg="percevite" type="percevite_node" name="percevite" clear_params="true" output="screen">
