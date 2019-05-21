@@ -1,5 +1,88 @@
-Installation
-============
+Installation instructions for TX2 (JetPack 4.2)
+===============================================
+
+These instructions assume you are installing to `~`, change the `cd` instructions
+to install to another folder.
+
+
+Clone this repository
+---------------------
+```
+cd <your code directory, assumed ~ for the rest of this readme>
+git clone https://github.com/tomvand/percevite_slamdunk.git percevite_ws
+git submodule update --init --recursive
+```
+
+
+Install dependencies
+--------------------
+
+Install ROS melodic
+```
+sudo apt install ros-melodic-desktop ros-melodic-image-proc
+```
+
+Compile Ivy-C (no binaries for Ubuntu 18 arm at the time of writing). Based on
+https://wiki.paparazziuav.org/wiki/Installation/FromScratch#Ivy-c
+```
+sudo apt install subversion tcl-dev
+cd
+mkdir ivy-c
+cd ivy-c
+svn co https://svn.tls.cena.fr/svn/ivy/ivy-c/trunk
+cd trunk/src
+make
+make install
+sudo mv /usr/local/lib64/* /usr/local/lib
+```
+
+Install ocaml and dependencies
+```
+sudo apt install ocaml ocaml-findlib ocamlbuild
+sudo apt install opam tk-dev
+opam init
+opam install xml-light
+opam install ivy
+source ~/.profile
+```
+We use `opam` for installation as the ocaml packages are not yet available through 
+`apt`.
+
+
+Compile/generate pprzlink
+```
+cd ~/percevite_ws/src/percevite/ext/pprzlink
+make PPRZLINK_LIB_VERSION=2.0 all pymessages
+```
+
+
+Compile and run Percevite
+-------------------------
+
+Compile percevite
+```
+cd ~/percevite_ws
+catkin_make -DCMAKE_BUILD_TYPE=Release
+```
+
+
+Launch
+```
+source devel/setup.bash
+roslaunch percevite percevite.launch
+```
+
+
+
+
+
+
+
+
+
+Old instructions for SLAMDunk (ignore)
+======================================
+
 Connect SLAMDunk to internet and set clock
 
 On the PC, run the `scripts/share_connection.sh` script to forward internet traffic to the SLAMDunk. Find the hostname of the PC using `hostname`.
