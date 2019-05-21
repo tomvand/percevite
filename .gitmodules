@@ -7,3 +7,6 @@
 [submodule "src/cspace"]
 	path = src/cspace
 	url = https://github.com/tomvand/ros-cspace-avoidance.git
+[submodule "src/vision_opencv"]
+	path = src/vision_opencv
+	url = https://github.com/ros-perception/vision_opencv.git
